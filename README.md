@@ -3,6 +3,10 @@
 A tiny Bash utility that batch‑converts **HEIC** images to **PNG** or **JPG** using **ffmpeg**.  
 It is designed for **Debian‑based Linux distributions** (Ubuntu, Linux Mint, Pop!_OS, etc.) but will also run on any POSIX‑compatible shell that meets the listed prerequisites.
 
+> [!IMPORTANT]
+> ffheic is still undergoing development & testing.
+>
+
 ---  
 
 ### Table of Contents
