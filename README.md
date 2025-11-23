@@ -19,10 +19,10 @@ It is designed for **Debian‑based Linux distributions** (Ubuntu, Linux Mint,
 ## Prerequisites
 | Requirement | Why it’s needed | Debian‑based install command |
 |-------------|-----------------|------------------------------|
-| **Bash** (or any POSIX‑compatible shell) | Executes the script | `sudo apt-get install -y bash` (already present on most systems) |
-| **ffmpeg** (≥ 4.0) with **HEIC** support | Performs the actual image conversion | `sudo apt-get install -y ffmpeg libheif-dev` |
+| **Bash** (or any POSIX‑compatible shell) | Executes the script | `sudo apt install -y bash` (already present on most systems) |
+| **ffmpeg** (≥ 4.0) with **HEIC** support | Performs the actual image conversion | `sudo apt install -y ffmpeg libheif-dev` |
 | **Git Bash** (Windows only) | Provides a Bash environment on Windows | N/A – Windows users should install Git Bash separately |
-| **add‑apt‑repository** (for the optional PPA) | Allows adding the `savoury1/ffmpeg4` PPA if `libheif-dev` isn’t in the default repos | `sudo apt-get install -y software-properties-common` |
+| **add‑apt‑repository** (for the optional PPA) | Allows adding the `savoury1/ffmpeg4` PPA if `libheif-dev` isn’t in the default repos | `sudo apt install -y software-properties-common` |
 
 Make sure `ffmpeg` is reachable from your `PATH`:
 
@@ -129,11 +129,11 @@ bash ffheic.sh -i C:/Users/Me/Images -o png
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `ffmpeg: command not found` | ffmpeg not installed or not in `PATH` | Install ffmpeg (`sudo apt-get install -y ffmpeg libheif-dev`). |
+| `ffmpeg: command not found` | ffmpeg not installed or not in `PATH` | Install ffmpeg (`sudo apt install -y ffmpeg libheif-dev`). |
 | “No HEIC files found to convert.” | Wrong input directory or missing `.heic` files | Verify the path and file extensions (case‑insensitive). |
 | Converted files are empty or corrupted | Out‑dated ffmpeg version without HEIC support | Upgrade to a recent ffmpeg release (≥ 4.0) and ensure `libheif-dev` is installed. |
 | Permission denied when running script | Script not executable | Run `chmod +x ffheic.sh` again. |
-| `apt-get` not found | Not a Debian‑based system | The script is intended for Debian‑based Linux; use a compatible distro or install the required packages manually. |
+| `apt` not found | Not a Debian‑based system | The script is intended for Debian‑based Linux; use a compatible distro or install the required packages manually. |
 
 ---  
 
