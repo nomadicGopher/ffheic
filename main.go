@@ -106,7 +106,7 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 
 	// For each file, run ffmpeg conversion
 	for _, inFile := range inFiles {
-		outFile := inFile + "." + *outType
+		outFile := strings.Replace(inFile, ".heic", "."+*outType, 1)
 		cmd := exec.Command("ffmpeg", "-i", inFile, outFile)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
