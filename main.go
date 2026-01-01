@@ -1,3 +1,4 @@
+// Package main provides a command-line tool for converting HEIC/HEIF images to PNG or JPEG using ffmpeg.
 package main
 
 import (
@@ -15,6 +16,8 @@ var (
 	inPath  = flag.String("input", "", "File or directory path to convert")
 )
 
+// main is the entry point for the ffheic command-line tool.
+// It parses flags, validates input, checks requirements, and processes files.
 func main() {
 	flag.Parse()
 
@@ -30,6 +33,8 @@ func main() {
 	fmt.Println("Processing completed successfully.")
 }
 
+// validateFlags checks the command-line flags for validity and returns information about the input path.
+// It ensures the output type is supported and the input path exists.
 func validateFlags() (inPathInfo os.FileInfo, err error) {
 	switch *outType {
 	case "jpeg", "jpg", "png":
@@ -50,8 +55,8 @@ func validateFlags() (inPathInfo os.FileInfo, err error) {
 	return inPathInfo, nil
 }
 
+// verifyRequirements checks that the operating system is supported and that ffmpeg with HEIC/HEIF support is installed.
 func verifyRequirements() (err error) {
-	// Determine OS type (Windows, MacOS, Linux)
 	osType := runtime.GOOS
 	switch osType {
 	case "linux", "windows", "darwin":
@@ -69,22 +74,27 @@ func verifyRequirements() (err error) {
 	cmd := exec.Command("ffmpeg", "-codecs")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Failed to run ffmpeg. Please ensure ffmpeg is installed and working: %v", err)
+		return err
 	}
 	if !strings.Contains(string(output), "heif") {
-		return fmt.Errorf("Your ffmpeg does not support HEIC/HEIF. Please install an ffmpeg build with HEIC/HEIF support. Refer to your OS documentation or ffmpeg.org for guidance: %v", err)
+		return fmt.Errorf("Your ffmpeg does not support HEIC/HEIF. Please install an ffmpeg build with HEIC/HEIF support. Refer to your OS documentation or ffmpeg.org for guidance.")
 	}
 
 	fmt.Println("ffmpeg with HEIC support is installed and ready.")
 	return nil
 }
 
+// processFiles converts the input file or all files in the input directory to the specified output format using ffmpeg.
+// It handles both single file and directory input.
 func processFiles(inPathInfo os.FileInfo) (err error) {
 	// If inPath is a directory, process all files inside; otherwise, process the single file
 	var files []string
 	if inPathInfo.IsDir() {
 		entries, err := os.ReadDir(*inPath)
-		checkError(err)
+		if err != nil {
+			return err
+		}
+
 		for _, entry := range entries {
 			if !entry.IsDir() {
 				files = append(files, filepath.Join(*inPath, entry.Name()))
@@ -102,13 +112,15 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 		cmd.Stderr = os.Stderr
 		fmt.Printf("Converting %s to %s...\n", file, outFile)
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("Failed to convert %s: %v\n", file, err)
+			return fmt.Errorf("Failed to convert %s: %v\n", file, err)
 		}
 	}
 
 	return nil
 }
 
+// checkError panics if the provided error is non-nil.
+// It is used for simple error handling throughout the program.
 func checkError(err error) {
 	if err != nil {
 		panic(err)
