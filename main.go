@@ -96,7 +96,7 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 		}
 
 		for _, entry := range entries {
-			if !entry.IsDir() {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".heic" {
 				inFiles = append(inFiles, filepath.Join(*inPath, entry.Name()))
 			}
 		}
