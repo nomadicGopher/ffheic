@@ -1,4 +1,4 @@
-# Convert_HEIC
+# Convert_HEIC &nbsp; [![Go Report Card](https://goreportcard.com/badge/github.com/nomadicGopher/Convert_HEIC)](https://goreportcard.com/report/github.com/nomadicGopher/Convert_HEIC)
 
 CLI utility that batch‑converts **HEIC** images to **PNG** or **JPG/JPEG**
 using **ImageMagick**.
