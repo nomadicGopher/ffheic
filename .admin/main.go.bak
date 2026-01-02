@@ -1,0 +1,135 @@
+// This is the MVP which was developed manually. The current main.go in production includes major performance/readability enhancements suggested by AI.
+
+// Package main provides a command-line tool for converting HEIC/HEIF images to PNG or JPEG using ImageMagick.
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+var (
+	outType = flag.String("output", "", "png, jpg or jpeg")
+	inPath  = flag.String("input", "", "File or directory path to convert")
+)
+
+// main is the entry point for the ffheic command-line tool.
+// It parses flags, validates input, checks requirements, and processes files.
+func main() {
+	flag.Parse()
+
+	err := verifyRequirements()
+	checkError(err)
+
+	inPathInfo, err := validateFlags()
+	checkError(err)
+
+	err = processFiles(inPathInfo)
+	checkError(err)
+
+	fmt.Println("INFO: Processing completed successfully.")
+}
+
+// verifyRequirements checks that the operating system is supported and that ffmpeg with HEIC/HEIF support is installed.
+func verifyRequirements() (err error) {
+	osType := runtime.GOOS
+	switch osType {
+	case "linux":
+		// Verify ImageMagick is installed
+		if _, err := exec.LookPath("convert"); err != nil {
+			return fmt.Errorf("The convert command does not exist, please ensure that imagemagick is installed and accessible via PATH.")
+		}
+
+		// Check if 'convert' supports HEIC
+		output, err := exec.Command("convert", "--version").CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("Failed to run 'convert --version': %v", err)
+		}
+		if !strings.Contains(strings.ToLower(string(output)), "heic") {
+			return fmt.Errorf("ImageMagick 'convert' does not support HEIC. Try installing libheif* and then reinstall imagemagick.")
+		}
+	case "windows":
+		return fmt.Errorf("Currently, Windows is not supported.")
+	case "darwin":
+		return fmt.Errorf("Currently, Darwin/MacOS is not supported.")
+	default:
+		return fmt.Errorf("%s is not supported.", osType)
+	}
+
+	fmt.Println("INFO: OS requirements are met.")
+	return nil
+}
+
+// validateFlags checks the command-line flags for validity and returns information about the input path.
+// It ensures the output type is supported and the input path exists.
+func validateFlags() (inPathInfo os.FileInfo, err error) {
+	// Verify inPath exists
+	if inPathInfo, err = os.Stat(*inPath); err != nil {
+		return nil, err
+	}
+
+	// Ensure inPath is a full path
+	if *inPath, err = filepath.Abs(*inPath); err != nil {
+		return nil, err
+	}
+	fmt.Println("INFO: Input Path: ", *inPath)
+
+	// Verify output type is viable
+	switch *outType {
+	case "jpeg", "jpg", "png":
+		fmt.Println("INFO: Output Type: ", *outType)
+	default:
+		return nil, fmt.Errorf("Invalid output type. Use 'png', 'jpg' or 'jpeg'.")
+	}
+
+	return inPathInfo, nil
+}
+
+// processFiles converts the input file or all files in the input directory to the specified output format using ffmpeg.
+// It handles both single file and directory input.
+func processFiles(inPathInfo os.FileInfo) (err error) {
+	// If inPath is a directory, process all files inside; otherwise, process the single file
+	var inFiles []string
+	if inPathInfo.IsDir() {
+		entries, err := os.ReadDir(*inPath)
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".heic" {
+				inFiles = append(inFiles, filepath.Join(*inPath, entry.Name()))
+			}
+		}
+	} else {
+		inFiles = append(inFiles, *inPath)
+	}
+
+	// For each file, run ffmpeg conversion
+	for _, inFile := range inFiles {
+		outFile := strings.Replace(inFile, ".heic", "."+*outType, 1)
+		cmd := exec.Command("convert", inFile, outFile)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Failed to convert %s: %v\n", inFile, err)
+		}
+		fmt.Printf("INFO: Converted %s to %s.\n", inFile, outFile)
+	}
+
+	return nil
+}
+
+// checkError panics if the provided error is non-nil.
+// It is used for simple error handling throughout the program.
+func checkError(err error) {
+	if err != nil {
+		fmt.Printf("ERROR: %v", err)
+		os.Exit(1)
+	}
+}
