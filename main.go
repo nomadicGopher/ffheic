@@ -30,7 +30,7 @@ func main() {
 	err = processFiles(inPathInfo)
 	checkError(err)
 
-	fmt.Println("Processing completed successfully.")
+	fmt.Println("INFO: Processing completed successfully.")
 }
 
 // verifyRequirements checks that the operating system is supported and that ffmpeg with HEIC/HEIF support is installed.
@@ -38,24 +38,28 @@ func verifyRequirements() (err error) {
 	osType := runtime.GOOS
 	switch osType {
 	case "linux":
-		_, err := exec.LookPath("apt")
+		// Verify ImageMagick is installed
+		if _, err := exec.LookPath("convert"); err != nil {
+			return fmt.Errorf("The convert command does not exist, please ensure that imagemagick is installed and accessible via PATH.")
+		}
+
+		// Check if 'convert' supports HEIC
+		output, err := exec.Command("convert", "--version").CombinedOutput()
 		if err != nil {
-			fmt.Println("APT package manager is not installed and therefor support for this OS environment is not garanteed.")
-		} else {
-			// Verify libheif-examples is installed
-			if _, err := exec.LookPath("heif-convert"); err != nil {
-				return fmt.Errorf("the heif-convert command does not exist, please ensure that the libheif-examples apt package is installed and added to PATH.")
-			}
+			return fmt.Errorf("Failed to run 'convert --version': %v", err)
+		}
+		if !strings.Contains(strings.ToLower(string(output)), "heic") {
+			return fmt.Errorf("ImageMagick 'convert' does not support HEIC. Try installing libheif* and then reinstall imagemagick.")
 		}
 	case "windows":
 		return fmt.Errorf("Currently, Windows is not supported.")
 	case "darwin":
-		return fmt.Errorf("Darwin/MacOS is not supported.")
+		return fmt.Errorf("Currently, Darwin/MacOS is not supported.")
 	default:
 		return fmt.Errorf("%s is not supported.", osType)
 	}
 
-	fmt.Println("OS requirements are met.")
+	fmt.Println("INFO: OS requirements are met.")
 	return nil
 }
 
@@ -71,14 +75,14 @@ func validateFlags() (inPathInfo os.FileInfo, err error) {
 	if *inPath, err = filepath.Abs(*inPath); err != nil {
 		return nil, err
 	}
-	fmt.Println("Input Path: ", *inPath)
+	fmt.Println("INFO: Input Path: ", *inPath)
 
 	// Verify output type is viable
 	switch *outType {
 	case "jpeg", "jpg", "png":
-		fmt.Println("Output Type: ", *outType)
+		fmt.Println("INFO: Output Type: ", *outType)
 	default:
-		panic("Invalid output type. Use 'png', 'jpg' or 'jpeg'.")
+		return nil, fmt.Errorf("Invalid output type. Use 'png', 'jpg' or 'jpeg'.")
 	}
 
 	return inPathInfo, nil
@@ -107,14 +111,13 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 	// For each file, run ffmpeg conversion
 	for _, inFile := range inFiles {
 		outFile := strings.Replace(inFile, ".heic", "."+*outType, 1)
-		// TODO
-		// cmd := exec.Command("ffmpeg", "-i", inFile, outFile)
-		// cmd.Stdout = os.Stdout
-		// cmd.Stderr = os.Stderr
-		// if err := cmd.Run(); err != nil {
-		// 	return fmt.Errorf("Failed to convert %s: %v\n", inFile, err)
-		// }
-		fmt.Printf("Converted %s to %s OK.\n", inFile, outFile)
+		cmd := exec.Command("convert", inFile, outFile)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Failed to convert %s: %v\n", inFile, err)
+		}
+		fmt.Printf("INFO: Converted %s to %s.\n", inFile, outFile)
 	}
 
 	return nil
@@ -124,6 +127,7 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 // It is used for simple error handling throughout the program.
 func checkError(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Printf("ERROR: %v", err)
+		os.Exit(1)
 	}
 }
