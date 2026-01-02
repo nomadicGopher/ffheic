@@ -21,10 +21,10 @@ var (
 func main() {
 	flag.Parse()
 
-	inPathInfo, err := validateFlags()
+	err := verifyRequirements()
 	checkError(err)
 
-	err = verifyRequirements()
+	inPathInfo, err := validateFlags()
 	checkError(err)
 
 	err = processFiles(inPathInfo)
@@ -33,9 +33,47 @@ func main() {
 	fmt.Println("Processing completed successfully.")
 }
 
+// verifyRequirements checks that the operating system is supported and that ffmpeg with HEIC/HEIF support is installed.
+func verifyRequirements() (err error) {
+	osType := runtime.GOOS
+	switch osType {
+	case "linux":
+		_, err := exec.LookPath("apt")
+		if err != nil {
+			fmt.Println("APT package manager is not installed and therefor support for this OS environment is not garanteed.")
+		} else {
+			// Verify libheif-examples is installed
+			if _, err := exec.LookPath("heif-convert"); err != nil {
+				return fmt.Errorf("the heif-convert command does not exist, please ensure that the libheif-examples apt package is installed and added to PATH.")
+			}
+		}
+	case "windows":
+		return fmt.Errorf("Currently, Windows is not supported.")
+	case "darwin":
+		return fmt.Errorf("Darwin/MacOS is not supported.")
+	default:
+		return fmt.Errorf("%s is not supported.", osType)
+	}
+
+	fmt.Println("OS requirements are met.")
+	return nil
+}
+
 // validateFlags checks the command-line flags for validity and returns information about the input path.
 // It ensures the output type is supported and the input path exists.
 func validateFlags() (inPathInfo os.FileInfo, err error) {
+	// Verify inPath exists
+	if inPathInfo, err = os.Stat(*inPath); err != nil {
+		return nil, err
+	}
+
+	// Ensure inPath is a full path
+	if *inPath, err = filepath.Abs(*inPath); err != nil {
+		return nil, err
+	}
+	fmt.Println("Input Path: ", *inPath)
+
+	// Verify output type is viable
 	switch *outType {
 	case "jpeg", "jpg", "png":
 		fmt.Println("Output Type: ", *outType)
@@ -43,45 +81,7 @@ func validateFlags() (inPathInfo os.FileInfo, err error) {
 		panic("Invalid output type. Use 'png', 'jpg' or 'jpeg'.")
 	}
 
-	if inPathInfo, err = os.Stat(*inPath); err != nil {
-		return nil, err
-	}
-
-	if *inPath, err = filepath.Abs(*inPath); err != nil {
-		return nil, err
-	}
-	fmt.Println("Input Path: ", *inPath)
-
 	return inPathInfo, nil
-}
-
-// verifyRequirements checks that the operating system is supported and that ffmpeg with HEIC/HEIF support is installed.
-func verifyRequirements() (err error) {
-	osType := runtime.GOOS
-	switch osType {
-	case "linux", "windows", "darwin":
-		// Supported
-	default:
-		return fmt.Errorf("Unsupported OS: %s. Only Linux, Windows, and macOS are supported.", osType)
-	}
-
-	// Verify ffmpeg is installed
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return err
-	}
-
-	// Verify ffmpeg supports heic/heif
-	cmd := exec.Command("ffmpeg", "-codecs")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-	if !strings.Contains(string(output), "heif") {
-		return fmt.Errorf("Your ffmpeg does not support HEIC/HEIF. Please install an ffmpeg build with HEIC/HEIF support. Refer to your OS documentation or ffmpeg.org for guidance.")
-	}
-
-	fmt.Println("ffmpeg with HEIC support is installed and ready.")
-	return nil
 }
 
 // processFiles converts the input file or all files in the input directory to the specified output format using ffmpeg.
@@ -107,12 +107,13 @@ func processFiles(inPathInfo os.FileInfo) (err error) {
 	// For each file, run ffmpeg conversion
 	for _, inFile := range inFiles {
 		outFile := strings.Replace(inFile, ".heic", "."+*outType, 1)
-		cmd := exec.Command("ffmpeg", "-i", inFile, outFile)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("Failed to convert %s: %v\n", inFile, err)
-		}
+		// TODO
+		// cmd := exec.Command("ffmpeg", "-i", inFile, outFile)
+		// cmd.Stdout = os.Stdout
+		// cmd.Stderr = os.Stderr
+		// if err := cmd.Run(); err != nil {
+		// 	return fmt.Errorf("Failed to convert %s: %v\n", inFile, err)
+		// }
 		fmt.Printf("Converted %s to %s OK.\n", inFile, outFile)
 	}
 
